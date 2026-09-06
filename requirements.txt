@@ -1,3 +1,1635 @@
-python-telegram-bot
-requests
-telethon
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>사각지대 없는 기적 재단</title>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        body {
+            font-family: 'Apple SD Gothic Neo', sans-serif;
+            margin: 0; padding: 0;
+            background-color: #F4F7F6;
+            display: flex; flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 📱 메인 서비스 화면 레이아웃 */
+        #mainAppLayout { display: flex; flex-direction: column; height: 100vh; padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
+
+        /* 상단 헤더 */
+        .header { background-color: #FFF; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-shrink: 0; }
+        .header h1 { font-size: 17px; margin: 0; color: #2C3E50; font-weight: bold; }
+        
+        /* 등급별 뱃지 */
+        .user-welcome-info { font-size: 11px; font-weight: bold; color: white; background: #34495E; padding: 5px 12px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 4px; }
+        .tier-whale { background: linear-gradient(135deg, #9B59B6, #8E44AD); }
+
+        /* 메인 컨텐츠 영역 */
+        .tab-content { display: none; flex-direction: column; align-items: center; justify-content: center; flex: 1; padding: 10px 20px; overflow-y: auto; }
+        .tab-content.active { display: flex; }
+
+        /* 🕊️ 기적이 영역 */
+        .bird-area { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            position: relative; 
+            width: 100%; 
+            max-width: 340px; 
+            margin-bottom: 5px;
+            height: 140px;
+        }
+        .bird-container { 
+            width: 160px; 
+            height: 120px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            position: relative;
+        }
+
+        /* 머리 위 깃털 */
+        .bird-hair {
+            position: absolute; top: -2px; width: 14px; height: 24px; background: #4FA3DF;
+            border-radius: 50% 50% 0 0; transform: rotate(-15deg); z-index: 1;
+            box-shadow: inset -2px 0 5px rgba(0,0,0,0.1); animation: hairWag 2s infinite ease-in-out;
+        }
+        .bird-hair::after {
+            content: ''; position: absolute; left: 6px; top: -3px; width: 10px; height: 20px;
+            background: #5dade2; border-radius: 50% 50% 0 0; transform: rotate(25deg);
+        }
+        
+        /* 몸통 */
+        .bird-body { 
+            width: 90px; height: 90px; background: radial-gradient(circle at 35% 35%, #5dade2 0%, #2980b9 70%, #1f618d 100%); 
+            border-radius: 52% 48% 51% 49% / 53% 53% 47% 47%; position: relative; 
+            box-shadow: inset -6px -6px 12px rgba(0,0,0,0.3), inset 6px 6px 12px rgba(255,255,255,0.4), 0 10px 20px rgba(0,0,0,0.2); 
+            z-index: 2; display: flex; justify-content: center; animation: breathLiving 2s infinite ease-in-out;
+        }
+
+        .bird-belly {
+            position: absolute; bottom: 6px; width: 50px; height: 25px;
+            background: radial-gradient(circle at 50% 100%, #e8f4f8 0%, #abd4ec 80%);
+            border-radius: 50% 50% 40% 40% / 100% 100% 30% 30%; opacity: 0.85; box-shadow: inset 0 -3px 5px rgba(0,0,0,0.08);
+        }
+        
+        .bird-beak-wrap { position: absolute; bottom: 22px; z-index: 5; display: flex; flex-direction: column; align-items: center; transform: translateZ(10px); }
+        .beak-top { width: 24px; height: 16px; background: linear-gradient(to bottom, #f39c12, #d35400); border-radius: 50% 50% 50% 50% / 100% 100% 30% 30%; box-shadow: 0 2px 4px rgba(0,0,0,0.15), inset 0 2px 2px rgba(255,255,255,0.4); }
+        .beak-bottom { width: 18px; height: 12px; background: #ba4a00; border-radius: 0 0 50% 50% / 0 0 100% 100%; margin-top: -4px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.4); }
+
+        .bird-eyes-container { position: absolute; top: 15px; display: flex; gap: 2px; z-index: 4; }
+        .bird-eye { 
+            width: 32px; height: 38px; background: white; border-radius: 50% 50% 48% 48%; position: relative;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15), inset -2px -2px 5px rgba(0,0,0,0.05), inset 2px 2px 5px rgba(0,0,0,0.1);
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+        
+        .eye-pupil {
+            width: 20px; height: 24px; background: radial-gradient(circle at 40% 40%, #2c3e50 0%, #1a252f 80%, #000000 100%);
+            border-radius: 50%; position: relative; border: 1.5px solid #2980b9; animation: movePupil 4s infinite ease-in-out; display: flex;
+        }
+        .eye-pupil::after { content: ''; position: absolute; width: 8px; height: 8px; background: white; border-radius: 50%; top: 2px; left: 2px; box-shadow: 0 0 2px rgba(255,255,255,0.8); }
+        
+        /* 날개 및 발 */
+        .bird-wing { position: absolute; width: 44px; height: 28px; background: linear-gradient(to bottom, #5dade2, #2980b9); top: 42px; z-index: 1; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+        .wing-left { left: 4px; border-radius: 30px 10px 10px 30px; transform-origin: right center; animation: flapLeftFly 0.5s infinite alternate ease-in-out; }
+        .wing-right { right: 4px; border-radius: 10px 30px 30px 10px; transform-origin: left center; animation: flapRightFly 0.5s infinite alternate ease-in-out; }
+        .bird-feet { position: absolute; bottom: -8px; display: flex; gap: 20px; z-index: 1; animation: feetMove 2s infinite ease-in-out; }
+        .foot { width: 14px; height: 10px; background: linear-gradient(to bottom, #f39c12, #e67e22); border-radius: 6px 6px 4px 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
+        @keyframes breathLiving { 0%, 100% { transform: translateY(0px) scale(1, 1); } 35% { transform: translateY(-7px) scale(0.96, 1.04); } 70% { transform: translateY(3px) scale(1.03, 0.96); } }
+        @keyframes hairWag { 0%, 100% { transform: rotate(-15deg); } 50% { transform: rotate(-8deg) scaleY(1.05); } }
+        @keyframes feetMove { 0%, 100% { transform: translateY(0px); } 35% { transform: translateY(2px) scaleY(0.9); } }
+        @keyframes movePupil { 0%, 100% { transform: translate(0px, 0px); } 20%, 30% { transform: translate(-3px, 2px); } 50%, 60% { transform: translate(3px, -2px); } }
+        @keyframes flapLeftFly { 0% { transform: rotate(-30deg); } 100% { transform: rotate(15deg); } }
+        @keyframes flapRightFly { 0% { transform: rotate(30deg); } 100% { transform: rotate(-15deg); } }
+
+        .nodding.wing-left { animation: flapLeftFly 0.08s infinite alternate linear !important; }
+        .nodding.wing-right { animation: flapRightFly 0.08s infinite alternate linear !important; }
+
+        /* 자산 보유 카드 스타일 */
+        .total-balance-card { background: linear-gradient(135deg, #3498DB, #2980B9); color: white; border-radius: 20px; padding: 15px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 6px 15px rgba(52, 152, 219, 0.2); margin-bottom: 10px; }
+        .total-title { font-size: 12px; opacity: 0.9; margin-bottom: 4px; }
+        .total-value { font-size: 24px; font-weight: bold; word-break: break-all; }
+
+        .card { background: white; border-radius: 20px; padding: 15px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.04); margin-bottom: 12px; }
+        .card-title { font-size: 12px; color: #7F8C8D; margin-bottom: 4px; }
+        .card-value { font-size: 22px; font-weight: bold; color: #2C3E50; word-break: break-all; }
+
+        .control-section { display: flex; width: 100%; max-width: 360px; align-items: center; gap: 12px; }
+        .action-button-group { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+        .side-icon-group { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+
+        .btn-action { color: white; border: none; border-radius: 14px; padding: 12px; width: 100%; font-size: 15px; font-weight: bold; cursor: pointer; text-align: center; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn-engine { background-color: #357ABD; box-shadow: 0 4px 10px rgba(53,122,189,0.25); }
+        .btn-ad-reward { background: linear-gradient(135deg, #E67E22, #D35400); box-shadow: 0 4px 10px rgba(230,126,34,0.25); }
+        .btn-side-circle { width: 40px; height: 40px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
+        .btn-admin-gear { background-color: white; color: #5D6D7E; }
+
+        /* 상단 게임 이동/네비게이션 창 */
+        .game-top-bar {
+            width: 100%;
+            max-width: 360px;
+            background: #2C3E50;
+            border-radius: 12px;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+        }
+        .btn-nav-top {
+            background: #3498DB;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* 🎮 기적 게임 창 레이아웃 (5개 메뉴 설정: 5분할 grid) */
+        .game-menu-container { width: 100%; max-width: 360px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-bottom: 10px; }
+        .btn-game-select { padding: 10px 1px; border-radius: 8px; border: none; background: #34495E; color: white; font-weight: bold; font-size: 9px; cursor: pointer; text-align: center; }
+        .btn-game-select.active { background: #3498DB; }
+        
+        .game-display-panel { background: white; border-radius: 20px; padding: 12px; width: 100%; max-width: 360px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center; position: relative; }
+        .game-display-panel canvas { background: #000000; border-radius: 10px; display: block; margin: 0 auto; touch-action: none; width: 100%; max-width: 330px; height: auto; }
+        
+        /* 전체화면 모드 시 최상단 고정 컨트롤 바 */
+        .fullscreen-control-bar {
+            display: none;
+            width: 100%;
+            max-width: 360px;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            backdrop-filter: blur(5px);
+        }
+
+        .game-display-panel.fullscreen-mode {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: 100vw !important;
+            z-index: 9990 !important;
+            border-radius: 0 !important;
+            padding: calc(20px + env(safe-area-inset-top)) 15px 20px 15px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: flex-start !important;
+            align-items: center !important;
+            background: #1A252F !important;
+            overflow-y: auto !important;
+        }
+        
+        .game-display-panel.fullscreen-mode .fullscreen-control-bar {
+            display: flex !important;
+        }
+
+        .game-display-panel.fullscreen-mode canvas {
+            max-width: 95vw !important;
+            height: 60vh !important;
+            object-fit: contain;
+        }
+        .game-display-panel.fullscreen-mode #puzzleBoard,
+        .game-display-panel.fullscreen-mode #photoPuzzleBoard {
+            width: min(85vw, 85vh) !important;
+            max-width: min(85vw, 85vh) !important;
+            height: min(85vw, 85vh) !important;
+            aspect-ratio: 1 / 1 !important;
+        }
+
+        /* 🍓 성장 퍼즐 게임 보드 스타일 */
+        #puzzleBoard {
+            width: 100%;
+            max-width: 320px;
+            margin: 10px auto;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 4px;
+        }
+        .puzzle-cell {
+            aspect-ratio: 1;
+            background: #2d3d52;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* 🧩 사진 직소 퍼즐 스타일 (정사각형 비율 고정 및 업로드 사진 크롭 대응) */
+        #photoPuzzleBoard {
+            width: 100%;
+            max-width: 330px;
+            aspect-ratio: 1 / 1;
+            margin: 10px auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 2px;
+            background: #111;
+            padding: 2px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        .photo-puzzle-piece {
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: transform 0.1s;
+        }
+        .photo-puzzle-piece:active {
+            transform: scale(0.95);
+        }
+
+        /* 🖼️ 원본 사진 보기 오버레이 모달 스타일 */
+        .original-preview-modal {
+            display: none;
+            position: absolute;
+            top: 55px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 240px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #FFEB00;
+            border-radius: 12px;
+            padding: 10px;
+            z-index: 100;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            text-align: center;
+        }
+        .original-preview-modal img {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* 🪙 금화 낙하 애니메이션 스타일 */
+        .falling-coin {
+            position: absolute;
+            font-size: 24px;
+            animation: fallCoin linear forwards;
+            z-index: 9999;
+            pointer-events: none;
+        }
+        @keyframes fallCoin {
+            0% { transform: translateY(-30px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(350px) rotate(360deg); opacity: 0; }
+        }
+
+        /* 금고 & 상점 */
+        .vault-card { background: linear-gradient(135deg, #2C3E50, #34495E); color: white; border-radius: 20px; padding: 18px 15px; width: 100%; max-width: 360px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); margin-bottom: 10px; text-align: center; }
+        .vault-balance-title { font-size: 12px; color: #BDC3C7; margin-bottom: 4px; }
+        .vault-balance-value { font-size: 24px; font-weight: bold; margin-bottom: 4px; word-break: break-all; }
+        .backend-usdt-box { background: rgba(255,255,255,0.08); border-radius: 12px; padding: 7px 10px; font-size: 11px; color: #34E7E4; font-family: monospace; display: flex; justify-content: space-between; margin-top: 6px; border: 1px dashed rgba(52, 231, 228, 0.4); }
+        .benefit-banner { background: #FFF3CD; border: 1px solid #FFEBAA; border-radius: 14px; padding: 10px; width: 100%; max-width: 360px; margin-bottom: 12px; font-size: 11px; color: #856404; line-height: 1.4; text-align: left; }
+        .btn-kakaopay { background-color: #FFEB00; color: #3C1E1E; font-weight: bold; box-shadow: 0 4px 10px rgba(255,235,0,0.25); border: none; border-radius: 12px; padding: 11px; width: 100%; max-width: 360px; margin-bottom: 10px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .vault-action-group { display: flex; justify-content: space-between; width: 100%; max-width: 360px; gap: 10px; margin-bottom: 12px; }
+
+        .btn-vault { flex: 1; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: bold; border: none; cursor: pointer; }
+        .btn-deposit { background-color: #2ECC71; color: white; }
+        .btn-withdraw { background-color: #FFF; color: #2C3E50; border: 1px solid #BDC3C7; }
+
+        .shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%; max-width: 360px; margin-top: 8px; padding-bottom: 20px; }
+        .shop-item { background: white; border-radius: 16px; padding: 15px 8px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.03); display: flex; flex-direction: column; align-items: center; position: relative; }
+        .vip-badge { display: block; position: absolute; top: 6px; right: 6px; background: #2ECC71; color: white; font-size: 8px; padding: 1px 5px; border-radius: 6px; font-weight: bold; }
+        .item-emoji { font-size: 36px; margin-bottom: 6px; }
+        .item-name { font-size: 13px; font-weight: bold; color: #2C3E50; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 90%; }
+        .item-price { font-size: 11px; color: #E74C3C; font-weight: bold; margin-bottom: 10px; }
+        .btn-exchange { background-color: #2ECC71; color: white; border: none; padding: 7px 15px; border-radius: 10px; font-size: 12px; font-weight: bold; cursor: pointer; width: 85%; }
+
+        /* 모달 및 팝업 */
+        .ad-overlay, .admin-modal, .pay-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.85); z-index: 9999; justify-content: center; align-items: center; padding: 20px; }
+        .ad-box, .admin-box, .pay-box { background-color: white; border-radius: 24px; width: 90%; max-width: 360px; padding: 25px 20px; text-align: center; position: relative; }
+        .btn-ad-close { background-color: #BDC3C7; color: white; border: none; padding: 12px; width: 100%; border-radius: 15px; font-size: 15px; font-weight: bold; cursor: not-allowed; }
+        .btn-ad-close.ready { background-color: #2ECC71; cursor: pointer; }
+        
+        /* 하단 네비게이션 바 */
+        .nav-bar { background-color: white; display: flex; justify-content: space-between; position: fixed; bottom: 0; left: 0; right: 0; height: 64px; padding-top: 10px; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid #EAEAEA; box-shadow: 0 -3px 8px rgba(0,0,0,0.04); z-index: 1000; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 11px; color: #95A5A6; text-decoration: none; width: 25%; cursor: pointer; text-align: center; }
+        .nav-item.active { color: #357ABD; font-weight: bold; }
+        .nav-icon { font-size: 20px; margin-bottom: 2px; }
+        
+        .auth-input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #EAEAEA; border-radius: 12px; font-size: 14px; outline: none; }
+    </style>
+</head>
+<body>
+
+    <div id="mainAppLayout">
+        <!-- 상단 헤더 -->
+        <div class="header">
+            <h1>사각지대 없는 기적 재단</h1>
+            <div id="userBadge" class="user-welcome-info tier-whale">
+                <span>🐳</span> <span id="userBadgeText">비회원 기적이</span>
+            </div>
+        </div>
+
+        <!-- 🕊️ 탭 1: 홈 화면 -->
+        <div id="homeTab" class="tab-content active">
+            <div class="bird-area">
+                <div class="bird-container">
+                    <div class="bird-hair"></div>
+                    <div class="bird-wing wing-left" id="leftWing"></div>
+                    <div class="bird-body" id="miracleBird">
+                        <div class="bird-eyes-container">
+                            <div class="bird-eye"><div class="eye-pupil"></div></div>
+                            <div class="bird-eye"><div class="eye-pupil"></div></div>
+                        </div>
+
+                        <div class="bird-beak-wrap">
+                            <div class="beak-top"></div>
+                            <div class="beak-bottom"></div>
+                        </div>
+                        <div class="bird-belly"></div>
+                    </div>
+                    <div class="bird-wing wing-right" id="rightWing"></div>
+                    <div class="bird-feet">
+                        <div class="foot"></div>
+                        <div class="foot"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="total-balance-card">
+                <div class="total-title">나의 누적 총잔고 (자산 합계)</div>
+                <div class="total-value"><span id="totalBalance">0</span> 원</div>
+            </div>
+            <div class="card">
+                <div class="card-title">이번 달 기적 지원금 (미예치)</div>
+                <div class="card-value"><span id="subsidyAmount">0</span> 원</div>
+            </div>
+            
+            <div class="control-section">
+                <div class="action-button-group">
+                    <button class="btn-action btn-engine" id="engineBtn">☁️ 엔진 가동하기</button>
+                    <button class="btn-action btn-ad-reward" onclick="openRandomAdPopup()">⚡ 광고 보고 보상 받기</button>
+                </div>
+                <div class="side-icon-group">
+                    <button class="btn-side-circle btn-admin-gear" onclick="openAdminModal()">⚙️</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🎮 탭 2: 기적 게임 공간 -->
+        <div id="gameTab" class="tab-content">
+            <!-- 상단 바로가기 / 빠른 전환 상단 창 -->
+            <div class="game-top-bar">
+                <button class="btn-nav-top" onclick="changeTabUrl('home')" style="background:#E74C3C;">🏠 홈 화면으로</button>
+                <button class="btn-nav-top" onclick="toggleFullScreenGame()" style="background:#2ECC71;">📱 전체화면 플레이</button>
+            </div>
+
+            <!-- 5개 메뉴 버튼 컨테이너 -->
+            <div class="game-menu-container">
+                <button id="btnSelectGalaga" class="btn-game-select active" style="background:#8E44AD;" onclick="switchMiniGame('galaga')">🚀 슈팅</button>
+                <button id="btnSelectAvoid" class="btn-game-select" style="background:#E67E22;" onclick="switchMiniGame('avoid')">⚡ 회피</button>
+                <button id="btnSelectBrick" class="btn-game-select" onclick="switchMiniGame('brick')">🧱 벽돌</button>
+                <button id="btnSelectPuzzle" class="btn-game-select" onclick="switchMiniGame('puzzle')">🍓 성장</button>
+                <button id="btnSelectPhotoPuzzle" class="btn-game-select" style="background:#16A085;" onclick="switchMiniGame('photoPuzzle')">🧩 퍼즐</button>
+            </div>
+
+            <!-- 🚀 아케이드 탄막 슈팅 게임 패널 -->
+            <div id="galagaGameArea" class="game-display-panel">
+                <div class="fullscreen-control-bar">
+                    <button class="btn-nav-top" onclick="goHomeFromFullScreen()" style="background:#E74C3C;">🏠 홈으로</button>
+                    <span style="color:white; font-size:13px; font-weight:bold;">🚀 아케이드 탄막 슈팅</span>
+                    <button class="btn-nav-top" onclick="exitFullScreenGame()" style="background:#7F8C8D;">↙️ 축소</button>
+                </div>
+                <canvas id="galagaCanvas" width="320" height="380"></canvas>
+                <button class="btn-action" style="margin-top:10px; width:100%; background:linear-gradient(135deg, #8E44AD, #9B59B6);" onclick="startGalagaGameEngine()">🚀 슈팅 게임 시작 / 리셋</button>
+            </div>
+
+            <!-- ⚡ 새로 추가된 회피 기동 게임 패널 -->
+            <div id="avoidGameArea" class="game-display-panel" style="display:none;">
+                <div class="fullscreen-control-bar">
+                    <button class="btn-nav-top" onclick="goHomeFromFullScreen()" style="background:#E74C3C;">🏠 홈으로</button>
+                    <span style="color:white; font-size:13px; font-weight:bold;">⚡ 쏟아지는 보석 회피</span>
+                    <button class="btn-nav-top" onclick="exitFullScreenGame()" style="background:#7F8C8D;">↙️ 축소</button>
+                </div>
+                <canvas id="avoidCanvas" width="320" height="380"></canvas>
+                <button class="btn-action" style="margin-top:10px; width:100%; background:linear-gradient(135deg, #D35400, #E67E22);" onclick="startAvoidGameEngine()">⚡ 회피 게임 시작 / 리셋</button>
+                <p style="font-size:11px; color:#7F8C8D; margin:6px 0 0 0;">좌우로 드래그하여 장애물을 피하고 보석(+300원)을 수집하세요!</p>
+            </div>
+
+            <!-- 🧱 무지개 칼라 벽돌깨기 패널 -->
+            <div id="brickGameArea" class="game-display-panel" style="display:none;">
+                <div class="fullscreen-control-bar">
+                    <button class="btn-nav-top" onclick="goHomeFromFullScreen()" style="background:#E74C3C;">🏠 홈으로</button>
+                    <span style="color:white; font-size:13px; font-weight:bold;">🧱 벽돌깨기</span>
+                    <button class="btn-nav-top" onclick="exitFullScreenGame()" style="background:#7F8C8D;">↙️ 축소</button>
+                </div>
+                <canvas id="gameCanvas" width="300" height="240"></canvas>
+                <button class="btn-action btn-engine" style="margin-top:10px; width:100%;" onclick="startBrickGameEngine()">🕹️ 게임 시작 / 리셋</button>
+                <p style="font-size:11px; color:#7F8C8D; margin:6px 0 0 0;">화면 드래그 조작 (벽돌당 +100원)</p>
+            </div>
+
+            <!-- 🍓 성장 퍼즐 (3매칭) 패널 -->
+            <div id="puzzleGameArea" class="game-display-panel" style="display:none;">
+                <div class="fullscreen-control-bar">
+                    <button class="btn-nav-top" onclick="goHomeFromFullScreen()" style="background:#E74C3C;">🏠 홈으로</button>
+                    <span style="color:white; font-size:13px; font-weight:bold;">🍓 성장 퍼즐</span>
+                    <button class="btn-nav-top" onclick="exitFullScreenGame()" style="background:#7F8C8D;">↙️ 축소</button>
+                </div>
+                <div id="puzzleBoard"></div>
+                <button class="btn-action" style="margin-top:10px; width:100%; background: #27AE60;" onclick="shufflePuzzle()">🍓 판 섞기 / 리셋</button>
+                <p style="font-size:11px; color:#7F8C8D; margin:6px 0 0 0;">3매칭 성공 시 다른 그림으로 변환 & 적립!</p>
+            </div>
+
+            <!-- 🧩 고품질 사진 직소 퍼즐 패널 (원본 사진 ON/OFF 기능 추가) -->
+            <div id="photoPuzzleGameArea" class="game-display-panel" style="display:none; position:relative;">
+                <div class="fullscreen-control-bar">
+                    <button class="btn-nav-top" onclick="goHomeFromFullScreen()" style="background:#E74C3C;">🏠 홈으로</button>
+                    <span style="color:white; font-size:13px; font-weight:bold;">🧩 고품질 사진 퍼즐</span>
+                    <button class="btn-nav-top" onclick="exitFullScreenGame()" style="background:#7F8C8D;">↙️ 축소</button>
+                </div>
+                
+                <div style="margin-bottom: 8px; display: flex; gap: 4px; justify-content: center; flex-wrap: wrap;">
+                    <label class="btn-action" style="background:#E67E22; font-size:11px; padding:8px 6px; cursor:pointer; flex:1; margin:0; min-width:90px;">
+                        📁 사진 추가
+                        <input type="file" id="puzzleImageUpload" accept="image/*" style="display:none;" onchange="loadCustomPuzzleImage(event)">
+                    </label>
+                    <button class="btn-action" style="background:#9B59B6; font-size:11px; padding:8px 6px; flex:1; min-width:90px;" onclick="toggleOriginalPreview()">👁️ 원본사진 ON</button>
+                    <button class="btn-action" style="background:#3498DB; font-size:11px; padding:8px 6px; flex:1; min-width:90px;" onclick="shufflePhotoPuzzle()">🔄 섞기</button>
+                </div>
+
+                <!-- 🖼️ 원본 사진 보기 창 모달 (토글 형식) -->
+                <div id="originalPreviewModal" class="original-preview-modal">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="color: #FFEB00; font-size: 12px; font-weight: bold;">🖼️ 원본 사진 미리보기</span>
+                        <span style="color: white; font-size: 14px; cursor: pointer; padding: 0 4px;" onclick="toggleOriginalPreview()">✕</span>
+                    </div>
+                    <img id="originalPreviewImg" src="" alt="원본 사진">
+                </div>
+
+                <div id="photoPuzzleBoard"></div>
+                <p style="font-size:11px; color:#7F8C8D; margin:6px 0 0 0;">인접한 조각을 터치하여 위치를 바꾸며 완성하세요! (+500원)</p>
+            </div>
+        </div>
+
+        <!-- 🏦 탭 3: 디파이 금고 -->
+        <div id="vaultTab" class="tab-content">
+            <div class="vault-card">
+                <div class="vault-balance-title">디파이 예치 총 자산 (원금)</div>
+                <div class="vault-balance-value"><span id="vaultAsset">0</span> 원</div>
+                <div class="vault-profit-rate">🚀 연이율 12.4% 복리 적용 중</div>
+
+                <div class="backend-usdt-box">
+                    <span>재단 마스터 풀:</span><span id="usdtValue">$934.41 USDT</span>
+                </div>
+            </div>
+            <button class="btn-kakaopay" onclick="openKakaoModal()">
+                <span style="background:#3C1E1E; color:#FFEB00; padding:2px 4px; border-radius:4px; font-size:11px;">kakao</span>페이로 3초 만에 VIP 충전하기
+            </button>
+            <div id="vaultBenefitBanner" class="benefit-banner">
+                🎯 <strong>고래 등급 달성!</strong> 이율 보상 및 상점 반값 적용 중입니다.
+            </div>
+            <div class="vault-action-group">
+                <button class="btn-vault btn-deposit" onclick="handleDeposit()">예치하기</button>
+                <button class="btn-vault btn-withdraw" onclick="handleWithdraw()">출금하기</button>
+            </div>
+            <button class="btn-action" style="background-color: #2ECC71; box-shadow:0 4px 10px rgba(46,204,113,0.3); width: 100%; max-width: 360px;" onclick="handleClaimInterest()">💰 기적 이자 수령하기</button>
+        </div>
+
+        <!-- 🛍️ 탭 4: 기적 상점 -->
+        <div id="shopTab" class="tab-content">
+            <div style="width: 100%; max-width: 360px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 0 5px;">
+                <h2 style="font-size: 17px; margin: 0; color: #2C3E50;">기적 상점</h2>
+                <span style="color: #357ABD; font-weight: bold; font-size: 13px;">보유: <span id="shopPoints">0</span>p</span>
+            </div>
+            <div class="shop-grid">
+                <div class="shop-item">
+                    <div class="vip-badge">VIP 50%</div>
+                    <div class="item-emoji">🍌</div>
+                    <div class="item-name">바나나맛우유</div>
+                    <div class="item-price"><del>1,800p</del> 900p</div>
+                    <button class="btn-exchange" onclick="buyItem('바나나맛우유', 900)">교환하기</button>
+                </div>
+                <div class="shop-item">
+                    <div class="vip-badge">VIP 50%</div>
+                    <div class="item-emoji">🍙</div>
+                    <div class="item-name">참치마요 삼각김밥</div>
+                    <div class="item-price"><del>1,300p</del> 650p</div>
+                    <button class="btn-exchange" onclick="buyItem('참치마요 삼각김밥', 650)">교환하기</button>
+                </div>
+
+                <div class="shop-item">
+                    <div class="vip-badge">VIP 50%</div>
+                    <div class="item-emoji">🏎️</div>
+                    <div class="item-name">한정판 부가티 슈퍼카</div>
+                    <div class="item-price"><del>80억p</del> 40억p</div>
+                    <button class="btn-exchange" onclick="buyItem('한정판 부가티 슈퍼카', 4000000000)">교환하기</button>
+                </div>
+                <div class="shop-item">
+                    <div class="vip-badge">VIP 50%</div>
+                    <div class="item-emoji">🏢</div>
+                    <div class="item-name">한강뷰 최상층 아파트</div>
+                    <div class="item-price"><del>200억p</del> 100억p</div>
+                    <button class="btn-exchange" onclick="buyItem('한강뷰 최상층 아파트', 10000000000)">교환하기</button>
+                </div>
+                <div class="shop-item">
+                    <div class="vip-badge">VIP 50%</div>
+                    <div class="item-emoji">🛩️</div>
+                    <div class="item-name">초호화 고래 개인 제트기</div>
+                    <div class="item-price"><del>1,600억p</del> 800억p</div>
+                    <button class="btn-exchange" onclick="buyItem('초호화 고래 개인 제트기', 80000000000)">교환하기</button>
+                </div>
+                <div class="shop-item">
+                    <div class="vip-badge">VIP 50%</div>
+                    <div class="item-emoji">🚀</div>
+                    <div class="item-name">화성 탐사 특급 로켓</div>
+                    <div class="item-price"><del>3조p</del> 1.5조p</div>
+                    <button class="btn-exchange" onclick="buyItem('화성 탐사 특급 로켓', 1500000000000)">교환하기</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 하단 네비게이션 바 -->
+        <div class="nav-bar">
+            <div class="nav-item active" id="navHome" onclick="changeTabUrl('home')">
+                <span class="nav-icon">🕊️</span><span>홈(기적이)</span>
+            </div>
+            <div class="nav-item" id="navGame" onclick="changeTabUrl('game')">
+                <span class="nav-icon">🎮</span><span>기적 게임</span>
+            </div>
+            <div class="nav-item" id="navVault" onclick="changeTabUrl('vault')">
+                <span class="nav-icon">🏦</span><span>디파이 금고</span>
+            </div>
+            <div class="nav-item" id="navShop" onclick="changeTabUrl('shop')">
+                <span class="nav-icon">🛍️</span><span>기적 상점</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달 창 구조체 -->
+    <div id="payModal" class="pay-modal">
+        <div class="pay-box" style="border-top: 8px solid #FFEB00;">
+            <h3 style="margin-top:5px; color:#3C1E1E;">카카오페이 머니 충전</h3>
+            <input type="number" id="payInputAmount" class="auth-input" value="30000" style="text-align:center; font-size:18px; font-weight:bold; color:#2C3E50;">
+            <button onclick="executeKakaoPay()" style="width:100%; padding:14px; background-color:#FFEB00; color:#3C1E1E; border:none; border-radius:12px; font-size:15px; font-weight:bold; cursor:pointer;">결제 및 예치 완료하기</button>
+            <div style="font-size:13px; color:#7F8C8D; margin-top:12px; cursor:pointer;" onclick="closeKakaoModal()">취소</div>
+        </div>
+    </div>
+
+    <div id="adOverlay" class="ad-overlay">
+        <div class="ad-box">
+            <div style="position:absolute; top:15px; left:15px; background:#7F8C8D; color:white; font-size:10px; padding:2px 6px; border-radius:4px;">광고</div>
+            <div style="position:absolute; top:15px; right:15px; color:#E74C3C; font-weight:bold; font-size:14px;" id="adTimer">5s</div>
+            <div style="font-size:45px; margin-top:10px;">🌱</div>
+            <div style="font-size:20px; font-weight:bold; margin-top:12px; margin-bottom:10px; color:#27AE60;">지구를 지키는 착한 기업</div>
+            <div style="font-size:14px; color:#34495E; line-height:1.6; margin-bottom:25px;">"우리가 쓰는 텀블러 하나가 내일의 푸른 숲을 만듭니다."</div>
+            <button id="adCloseBtn" class="btn-ad-close" disabled>잠시 후 닫기</button>
+        </div>
+    </div>
+
+    <div id="adminModal" class="admin-modal">
+        <div class="admin-box">
+            <h3 style="margin-top:0; color:#357ABD; border-bottom:2px solid #357ABD; padding-bottom:10px;">설정 및 로그인</h3>
+            
+            <div style="text-align: left; margin: 15px 0; padding: 12px; background: #f8f9fa; border-radius: 12px; font-size: 13px;">
+                <label style="font-weight: bold; color: #2C3E50;">아이디</label>
+                <input type="text" id="authIdInput" class="auth-input" style="padding: 8px; margin-bottom: 8px; margin-top: 4px;" placeholder="아이디 입력">
+                <label style="font-weight: bold; color: #2C3E50;">비밀번호</label>
+                <input type="password" id="authPwInput" class="auth-input" style="padding: 8px; margin-bottom: 12px; margin-top: 4px;" placeholder="비밀번호 입력">
+                
+                <div style="display: flex; gap: 6px;">
+                    <button onclick="handleRegister()" style="flex: 1; padding: 10px; border: none; background: #3498DB; color: white; border-radius: 8px; font-weight: bold; cursor: pointer;">신규 회원가입</button>
+                    <button onclick="handleLogin()" style="flex: 1; padding: 10px; border: none; background: #2ECC71; color: white; border-radius: 8px; font-weight: bold; cursor: pointer;">로그인</button>
+                </div>
+                <button onclick="handleLogout()" style="width: 100%; margin-top: 6px; padding: 8px; border: none; background: #E74C3C; color: white; border-radius: 8px; font-size: 12px; cursor: pointer;">로그아웃</button>
+            </div>
+
+            <button onclick="closeAdminModal()" style="width:100%; padding:12px; border:none; background:#BDC3C7; color:white; border-radius:12px; font-weight:bold; cursor: pointer;">닫기</button>
+        </div>
+    </div>
+
+    <script>
+        let amount = 0; 
+        let vaultAsset = 0;
+        let isRunning = false; let intervalId = null;
+        
+        const btn = document.getElementById('engineBtn');
+        const amountDisplay = document.getElementById('subsidyAmount');
+        const vaultAssetDisplay = document.getElementById('vaultAsset');
+        const totalBalanceDisplay = document.getElementById('totalBalance');
+        const shopPointsDisplay = document.getElementById('shopPoints');
+        const userBadgeText = document.getElementById('userBadgeText');
+
+        /* 💡 데이터 로드 */
+        function loadSavedData() {
+            const loggedInUser = localStorage.getItem("loggedInUser");
+            
+            if (loggedInUser) {
+                const userData = JSON.parse(localStorage.getItem(`user_${loggedInUser}`));
+                if (userData) {
+                    amount = parseInt(userData.totalBalance) || 0;
+                    vaultAsset = parseInt(userData.vaultAsset) || 0;
+                    if (userBadgeText) userBadgeText.innerText = loggedInUser + " 대장님";
+                }
+            } else {
+                amount = 0;
+                vaultAsset = 0;
+                if (userBadgeText) userBadgeText.innerText = "비회원 기적이";
+            }
+            updateTotalBalance(false);
+        }
+
+        /* 💡 데이터 저장 */
+        function saveCurrentData() {
+            const loggedInUser = localStorage.getItem("loggedInUser");
+            if (loggedInUser) {
+                const userData = JSON.parse(localStorage.getItem(`user_${loggedInUser}`)) || {};
+                userData.totalBalance = amount;
+                userData.vaultAsset = vaultAsset;
+                localStorage.setItem(`user_${loggedInUser}`, JSON.stringify(userData));
+            }
+        }
+
+        /* 💡 회원가입 및 로그인 처리 */
+        function handleRegister() {
+            const id = document.getElementById("authIdInput").value.trim();
+            const pw = document.getElementById("authPwInput").value.trim();
+
+            if (!id || !pw) {
+                alert("아이디와 비밀번호를 입력해주세요.");
+                return;
+            }
+
+            if (localStorage.getItem(`user_${id}`)) {
+                alert("이미 존재하는 아이디입니다.");
+                return;
+            }
+
+            const newUser = {
+                username: id,
+                password: pw,
+                totalBalance: 10000000,
+                vaultAsset: 0
+            };
+
+            localStorage.setItem(`user_${id}`, JSON.stringify(newUser));
+            alert(`🎉 회원가입 완료!\n[${id}]님께 가입 축하 지원금 10,000,000원이 지급되었습니다.`);
+        }
+
+        function handleLogin() {
+            const id = document.getElementById("authIdInput").value.trim();
+            const pw = document.getElementById("authPwInput").value.trim();
+
+            const storedData = localStorage.getItem(`user_${id}`);
+            if (!storedData) {
+                alert("존재하지 않는 회원 계정입니다.");
+                return;
+            }
+
+            const userData = JSON.parse(storedData);
+            if (userData.password !== pw) {
+                alert("비밀번호가 일치하지 않습니다.");
+                return;
+            }
+
+            localStorage.setItem("loggedInUser", id);
+            alert(`🐳 환영합니다, ${id}님!\n개인 자산 데이터가 동기화되었습니다.`);
+            
+            document.getElementById("authIdInput").value = "";
+            document.getElementById("authPwInput").value = "";
+            closeAdminModal();
+            loadSavedData();
+        }
+
+        function handleLogout() {
+            localStorage.removeItem("loggedInUser");
+            alert("로그아웃 되었습니다. 첫 화면(0원) 모드로 전환됩니다.");
+            closeAdminModal();
+            loadSavedData();
+        }
+
+        function openKakaoModal() { document.getElementById('payModal').style.display = 'flex'; }
+        function closeKakaoModal() { document.getElementById('payModal').style.display = 'none'; }
+        
+        function executeKakaoPay() {
+            const payAmt = parseInt(document.getElementById('payInputAmount').value);
+            if(isNaN(payAmt) || payAmt <= 0) return alert("금액을 정확히 입력하세요.");
+            alert("💛 페이 완료! [" + payAmt.toLocaleString() + "원]이 디파이 금고로 추가 예치됩니다.");
+            vaultAsset += payAmt; closeKakaoModal(); updateTotalBalance();
+        }
+
+        function updateTotalBalance(shouldSave = true) {
+            let total = amount + vaultAsset;
+            if(totalBalanceDisplay) totalBalanceDisplay.innerText = total.toLocaleString();
+            if(amountDisplay) amountDisplay.innerText = amount.toLocaleString();
+            if(shopPointsDisplay) shopPointsDisplay.innerText = amount.toLocaleString();
+            if(vaultAssetDisplay) vaultAssetDisplay.innerText = vaultAsset.toLocaleString();
+            if(shouldSave) saveCurrentData();
+        }
+
+        function handleClaimInterest() {
+            const totalDailyInterest = Math.floor(vaultAsset * 0.00034);
+            amount += totalDailyInterest; updateTotalBalance();
+            alert("🎁 복리 이자 수령 완료! +" + totalDailyInterest.toLocaleString() + "원 💰");
+        }
+
+        function buyItem(itemName, finalPrice) {
+            if (amount >= finalPrice) { amount -= finalPrice; updateTotalBalance(); alert("🎁 [" + itemName + "] 교환 성공! 인벤토리에 지급되었습니다. 🎉"); } 
+            else { alert("❌ 보유 기적 포인트가 부족합니다!"); }
+        }
+
+        function changeTabUrl(tabName) { 
+            exitFullScreenGame();
+            routeTabs(tabName); 
+        }
+
+        let currentActiveGameAreaId = 'galagaGameArea';
+
+        function toggleFullScreenGame() {
+            const activePanel = document.getElementById(currentActiveGameAreaId);
+            if(activePanel) {
+                if (activePanel.classList.contains('fullscreen-mode')) {
+                    exitFullScreenGame();
+                } else {
+                    activePanel.classList.add('fullscreen-mode');
+                }
+            }
+        }
+
+        function exitFullScreenGame() {
+            const panels = document.querySelectorAll('.game-display-panel');
+            panels.forEach(p => p.classList.remove('fullscreen-mode'));
+        }
+
+        function goHomeFromFullScreen() {
+            exitFullScreenGame();
+            changeTabUrl('home');
+        }
+
+        function routeTabs(tabName) {
+            document.getElementById('homeTab').classList.remove('active'); document.getElementById('gameTab').classList.remove('active'); document.getElementById('vaultTab').classList.remove('active'); document.getElementById('shopTab').classList.remove('active');
+            document.getElementById('navHome').classList.remove('active'); document.getElementById('navGame').classList.remove('active'); document.getElementById('navVault').classList.remove('active'); document.getElementById('navShop').classList.remove('active');
+            
+            cancelAllGameAnimations();
+
+            if(tabName === 'game') { 
+                document.getElementById('gameTab').classList.add('active'); 
+                document.getElementById('navGame').classList.add('active'); 
+                setTimeout(() => { startGalagaGameEngine(); }, 50); 
+            }
+            else if(tabName === 'vault') { document.getElementById('vaultTab').classList.add('active'); document.getElementById('navVault').classList.add('active'); } 
+            else if(tabName === 'shop') { document.getElementById('shopTab').classList.add('active'); document.getElementById('navShop').classList.add('active'); } 
+            else { document.getElementById('homeTab').classList.add('active'); document.getElementById('navHome').classList.add('active'); }
+        }
+
+        /* ☁️ 엔진 가동 */
+        btn.addEventListener('click', () => {
+            const loggedInUser = localStorage.getItem("loggedInUser");
+            if (!loggedInUser) {
+                alert("🔒 엔진 가동은 로그인/회원가입 후 이용 가능합니다!");
+                openAdminModal();
+                return;
+            }
+
+            const leftWing = document.getElementById('leftWing'); const rightWing = document.getElementById('rightWing');
+            if (!isRunning) {
+                isRunning = true; btn.innerText = "☁️ 가동 중..."; btn.style.backgroundColor = "#E67E22"; 
+                leftWing.classList.add('nodding'); rightWing.classList.add('nodding');
+                intervalId = setInterval(() => { amount += Math.floor(Math.random() * 35000) + 15000; updateTotalBalance(); }, 1000);
+            } else {
+                isRunning = false; btn.innerText = "☁️ 엔진 가동하기"; btn.style.backgroundColor = "#357ABD"; 
+                leftWing.classList.remove('nodding'); rightWing.classList.remove('nodding'); clearInterval(intervalId);
+            }
+        });
+
+        function openAdminModal() { document.getElementById('adminModal').style.display = 'flex'; }
+        function closeAdminModal() { document.getElementById('adminModal').style.display = 'none'; }
+
+        let adCountdown = 5; let adTimerId = null;
+        
+        function openRandomAdPopup() {
+            const loggedInUser = localStorage.getItem("loggedInUser");
+            if (!loggedInUser) {
+                alert("❌ 광고 보상은 로그인 후 이용 가능합니다.");
+                openAdminModal();
+                return;
+            }
+
+            adCountdown = 5; document.getElementById('adOverlay').style.display = 'flex';
+            document.getElementById('adTimer').innerText = adCountdown + 's';
+            const closeBtn = document.getElementById('adCloseBtn'); closeBtn.innerText = "잠시 후 닫기"; closeBtn.disabled = true; closeBtn.classList.remove('ready');
+
+            adTimerId = setInterval(() => {
+                adCountdown--; document.getElementById('adTimer').innerText = adCountdown + 's';
+                if(adCountdown <= 0) {
+                    clearInterval(adTimerId); document.getElementById('adTimer').innerText = '완료!';
+                    closeBtn.innerText = "보상 받기"; closeBtn.disabled = false; closeBtn.classList.add('ready'); closeBtn.onclick = finishAdReward;
+                }
+            }, 1000);
+        }
+
+        function finishAdReward() {
+            const bonusAmount = Math.floor(amount / 3);
+            amount += bonusAmount; 
+            updateTotalBalance();
+            document.getElementById('adOverlay').style.display = 'none'; 
+            alert(`🎉 보상이 지급되었습니다! (+${bonusAmount.toLocaleString()}원)`);
+        }
+
+        function handleDeposit() {
+            const input = prompt("예치할 금액을 입력하세요", amount);
+            if (!input) return; const depAmt = parseInt(input);
+            if(!isNaN(depAmt) && depAmt > 0 && depAmt <= amount) { amount -= depAmt; vaultAsset += depAmt; updateTotalBalance(); }
+        }
+
+        function handleWithdraw() {
+            const input = prompt("출금할 금액을 입력하세요", vaultAsset);
+            if (!input) return; const witAmt = parseInt(input);
+            if(!isNaN(witAmt) && witAmt > 0 && witAmt <= vaultAsset) { vaultAsset -= witAmt; amount += witAmt; updateTotalBalance(); }
+        }
+
+        function cancelAllGameAnimations() {
+            cancelAnimationFrame(gameAnimationId); 
+            cancelAnimationFrame(galagaAnimationId);
+            cancelAnimationFrame(avoidAnimationId);
+        }
+
+        function switchMiniGame(gameType) {
+            exitFullScreenGame();
+            document.getElementById('btnSelectBrick').classList.remove('active'); 
+            document.getElementById('btnSelectGalaga').classList.remove('active');
+            document.getElementById('btnSelectAvoid').classList.remove('active');
+            document.getElementById('btnSelectPuzzle').classList.remove('active');
+            document.getElementById('btnSelectPhotoPuzzle').classList.remove('active');
+
+            document.getElementById('brickGameArea').style.display = 'none'; 
+            document.getElementById('galagaGameArea').style.display = 'none'; 
+            document.getElementById('avoidGameArea').style.display = 'none'; 
+            document.getElementById('puzzleGameArea').style.display = 'none';
+            document.getElementById('photoPuzzleGameArea').style.display = 'none';
+            
+            cancelAllGameAnimations();
+
+            if(gameType === 'brick') { 
+                currentActiveGameAreaId = 'brickGameArea';
+                document.getElementById('btnSelectBrick').classList.add('active'); 
+                document.getElementById('brickGameArea').style.display = 'block'; 
+                startBrickGameEngine(); 
+            } 
+            else if(gameType === 'galaga') { 
+                currentActiveGameAreaId = 'galagaGameArea';
+                document.getElementById('btnSelectGalaga').classList.add('active'); 
+                document.getElementById('galagaGameArea').style.display = 'block'; 
+                startGalagaGameEngine(); 
+            }
+            else if(gameType === 'avoid') { 
+                currentActiveGameAreaId = 'avoidGameArea';
+                document.getElementById('btnSelectAvoid').classList.add('active'); 
+                document.getElementById('avoidGameArea').style.display = 'block'; 
+                startAvoidGameEngine(); 
+            }
+            else if(gameType === 'puzzle') {
+                currentActiveGameAreaId = 'puzzleGameArea';
+                document.getElementById('btnSelectPuzzle').classList.add('active');
+                document.getElementById('puzzleGameArea').style.display = 'block';
+                createPuzzleBoard();
+            }
+            else if(gameType === 'photoPuzzle') {
+                currentActiveGameAreaId = 'photoPuzzleGameArea';
+                document.getElementById('btnSelectPhotoPuzzle').classList.add('active');
+                document.getElementById('photoPuzzleGameArea').style.display = 'block';
+                initPhotoPuzzle();
+            }
+        }
+
+        /* 🧱 1. 알록달록 무지개 칼라 벽돌깨기 엔진 */
+        let gameCanvas = document.getElementById("gameCanvas"); 
+        let ctx = gameCanvas.getContext("2d");
+        let gameAnimationId = null; 
+        let ballRadius = 6, ballX, ballY, dx, dy; 
+        let paddleHeight = 12, paddleWidth = 65, paddleX; 
+        let bricks = [];
+        
+        const rowColors = [
+            { top: "#FF4E50", bottom: "#F9D423" },
+            { top: "#FF007F", bottom: "#7928CA" },
+            { top: "#00F2FE", bottom: "#4FACFE" },
+            { top: "#43E97B", bottom: "#38F9D7" }
+        ];
+
+        function startBrickGameEngine() {
+            cancelAnimationFrame(gameAnimationId); if(!gameCanvas) return;
+            ballX = gameCanvas.width / 2; 
+            ballY = gameCanvas.height - 35; 
+            dx = 2; 
+            dy = -2; 
+            paddleX = (gameCanvas.width - paddleWidth) / 2;
+
+            for (let c = 0; c < 6; c++) { 
+                bricks[c] = []; 
+                for (let r = 0; r < 4; r++) { 
+                    bricks[c][r] = { x: 0, y: 0, status: 1 }; 
+                } 
+            }
+            drawBrickGame();
+        }
+
+        function setPaddleX(clientX) { 
+            let rect = gameCanvas.getBoundingClientRect(); 
+            let relativeX = clientX - rect.left; 
+            if(relativeX > 0 && relativeX < gameCanvas.width) paddleX = relativeX - paddleWidth / 2; 
+        }
+
+        gameCanvas.addEventListener("touchmove", (e) => setPaddleX(e.touches[0].clientX));
+        gameCanvas.addEventListener("mousemove", (e) => setPaddleX(e.clientX));
+        
+        function drawBrickGame() {
+            ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+            
+            ctx.beginPath(); 
+            ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2); 
+            ctx.fillStyle = "#FFD700"; 
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = "#FFD700";
+            ctx.fill(); 
+            ctx.closePath();
+            ctx.shadowBlur = 0;
+
+            ctx.beginPath(); 
+            let paddleGradient = ctx.createLinearGradient(paddleX, 0, paddleX + paddleWidth, 0);
+            paddleGradient.addColorStop(0, '#FF007F');
+            paddleGradient.addColorStop(0.5, '#7928CA');
+            paddleGradient.addColorStop(1, '#00F2FE');
+            ctx.fillStyle = paddleGradient; 
+            ctx.roundRect ? ctx.roundRect(paddleX, gameCanvas.height - paddleHeight - 5, paddleWidth, paddleHeight, 6) : ctx.rect(paddleX, gameCanvas.height - paddleHeight - 5, paddleWidth, paddleHeight);
+            ctx.fill(); 
+            
+            ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+            ctx.fillRect(paddleX + 4, gameCanvas.height - paddleHeight - 4, paddleWidth - 8, 2);
+            ctx.closePath();
+
+            for (let c = 0; c < 6; c++) {
+                for (let r = 0; r < 4; r++) {
+                    if (bricks[c][r] && bricks[c][r].status === 1) {
+                        let brickX = c * 46 + 13; 
+                        let brickY = r * 18 + 15; 
+                        bricks[c][r].x = brickX; 
+                        bricks[c][r].y = brickY;
+
+                        ctx.beginPath(); 
+                        let brickGradient = ctx.createLinearGradient(brickX, brickY, brickX, brickY + 13);
+                        brickGradient.addColorStop(0, rowColors[r].top);
+                        brickGradient.addColorStop(1, rowColors[r].bottom);
+
+                        ctx.fillStyle = brickGradient; 
+                        ctx.roundRect ? ctx.roundRect(brickX, brickY, 41, 14, 3) : ctx.rect(brickX, brickY, 41, 14);
+                        ctx.fill(); 
+
+                        ctx.strokeStyle = "rgba(255,255,255,0.4)";
+                        ctx.stroke();
+                        ctx.closePath();
+
+                        if (ballX > brickX && ballX < brickX + 41 && ballY > brickY && ballY < brickY + 14) { 
+                            dy = -dy; 
+                            bricks[c][r].status = 0; 
+                            amount += 100; 
+                            updateTotalBalance(); 
+                        }
+                    }
+                }
+            }
+
+            if (ballX + dx > gameCanvas.width - ballRadius || ballX + dx < ballRadius) dx = -dx;
+            if (ballY + dy < ballRadius) dy = -dy;
+            else if (ballY + dy > gameCanvas.height - ballRadius - paddleHeight - 5) {
+                if (ballX > paddleX && ballX < paddleX + paddleWidth) { 
+                    dy = -dy; 
+                } 
+                else if (ballY + dy > gameCanvas.height - ballRadius) { 
+                    cancelAnimationFrame(gameAnimationId); 
+                    alert("🧱 게임 오버! 다시 시작합니다."); 
+                    startBrickGameEngine(); 
+                    return; 
+                }
+            }
+            ballX += dx; ballY += dy; 
+            gameAnimationId = requestAnimationFrame(drawBrickGame);
+        }
+
+        /* 🍓 2. 성장 퍼즐 (3매칭) 엔진 */
+        const PUZZLE_SIZE = 6;
+        const puzzleItems = ["🍌", "🍓", "🥕", "🍀"];
+        let puzzleBoardData = [];
+        let firstSelectedPuzzleCell = null;
+
+        function createPuzzleBoard() {
+            const boardDiv = document.getElementById("puzzleBoard");
+            if(!boardDiv) return;
+            boardDiv.innerHTML = "";
+
+            for (let r = 0; r < PUZZLE_SIZE; r++) {
+                puzzleBoardData[r] = [];
+                for (let c = 0; c < PUZZLE_SIZE; c++) {
+                    puzzleBoardData[r][c] = puzzleItems[Math.floor(Math.random() * puzzleItems.length)];
+
+                    const cell = document.createElement("div");
+                    cell.className = "puzzle-cell";
+                    cell.innerText = puzzleBoardData[r][c];
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    cell.addEventListener("click", handlePuzzleClick);
+                    boardDiv.appendChild(cell);
+                }
+            }
+            firstSelectedPuzzleCell = null;
+        }
+
+        function handlePuzzleClick() {
+            const row = Number(this.dataset.row);
+            const col = Number(this.dataset.col);
+
+            if (!firstSelectedPuzzleCell) {
+                firstSelectedPuzzleCell = { row, col };
+                this.style.border = "3px solid #FFEB00";
+                return;
+            }
+
+            let temp = puzzleBoardData[firstSelectedPuzzleCell.row][firstSelectedPuzzleCell.col];
+            puzzleBoardData[firstSelectedPuzzleCell.row][firstSelectedPuzzleCell.col] = puzzleBoardData[row][col];
+            puzzleBoardData[row][col] = temp;
+
+            firstSelectedPuzzleCell = null;
+            updatePuzzleView();
+            checkPuzzleMatches();
+        }
+
+        function updatePuzzleView() {
+            const cells = document.querySelectorAll(".puzzle-cell");
+            cells.forEach(cell => {
+                const r = cell.dataset.row;
+                const c = cell.dataset.col;
+                cell.innerText = puzzleBoardData[r][c];
+                cell.style.border = "none";
+            });
+        }
+
+        function checkPuzzleMatches() {
+            let matchedCoords = [];
+
+            for (let r = 0; r < PUZZLE_SIZE; r++) {
+                let matchLength = 1;
+                for (let c = 1; c < PUZZLE_SIZE; c++) {
+                    if (puzzleBoardData[r][c] === puzzleBoardData[r][c - 1]) {
+                        matchLength++;
+                    } else {
+                        if (matchLength >= 3) {
+                            for (let i = 0; i < matchLength; i++) {
+                                matchedCoords.push({ r: r, c: c - 1 - i });
+                            }
+                        }
+                        matchLength = 1;
+                    }
+                }
+                if (matchLength >= 3) {
+                    for (let i = 0; i < matchLength; i++) {
+                        matchedCoords.push({ r: r, c: PUZZLE_SIZE - 1 - i });
+                    }
+                }
+            }
+
+            for (let c = 0; c < PUZZLE_SIZE; c++) {
+                let matchLength = 1;
+                for (let r = 1; r < PUZZLE_SIZE; r++) {
+                    if (puzzleBoardData[r][c] === puzzleBoardData[r - 1][c]) {
+                        matchLength++;
+                    } else {
+                        if (matchLength >= 3) {
+                            for (let i = 0; i < matchLength; i++) {
+                                matchedCoords.push({ r: r - 1 - i, c: c });
+                            }
+                        }
+                        matchLength = 1;
+                    }
+                }
+                if (matchLength >= 3) {
+                    for (let i = 0; i < matchLength; i++) {
+                        matchedCoords.push({ r: PUZZLE_SIZE - 1 - i, c: c });
+                    }
+                }
+            }
+
+            let uniqueMatches = Array.from(new Set(matchedCoords.map(item => JSON.stringify(item)))).map(string => JSON.parse(string));
+
+            if (uniqueMatches.length > 0) {
+                uniqueMatches.forEach(coord => {
+                    let newEmoji;
+                    do {
+                        newEmoji = puzzleItems[Math.floor(Math.random() * puzzleItems.length)];
+                    } while (newEmoji === puzzleBoardData[coord.r][coord.c]);
+                    
+                    puzzleBoardData[coord.r][coord.c] = newEmoji;
+                });
+
+                let earnedPoints = uniqueMatches.length * 100;
+                amount += earnedPoints;
+                updateTotalBalance();
+                updatePuzzleView();
+            }
+        }
+
+        function shufflePuzzle() {
+            createPuzzleBoard();
+        }
+
+        /* 🧩 3. 고품질 사진 직소 퍼즐 엔진 (직사각형 이미지 왜곡 방지 및 크롭 대응) */
+        const PHOTO_GRID = 4;
+        let currentPhotoUrl = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&auto=format&fit=crop&q=60"; 
+        let photoPuzzlePieces = [];
+        let selectedPhotoPieceIndex = null;
+        let isOriginalPreviewOpen = false;
+
+        function initPhotoPuzzle() {
+            photoPuzzlePieces = [];
+            for (let i = 0; i < PHOTO_GRID * PHOTO_GRID; i++) {
+                photoPuzzlePieces.push(i);
+            }
+            shufflePhotoPuzzle();
+        }
+
+        function loadCustomPuzzleImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        // 업로드된 이미지를 정사각형 캔버스에 중앙 정렬 크롭하여 왜곡 방지
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = 600;
+                        canvas.height = 600;
+                        
+                        let sWidth = img.width;
+                        let sHeight = img.height;
+                        let sX = 0, sY = 0;
+                        
+                        if (sWidth > sHeight) {
+                            sX = (sWidth - sHeight) / 2;
+                            sWidth = sHeight;
+                        } else {
+                            sY = (sHeight - sWidth) / 2;
+                            sHeight = sWidth;
+                        }
+                        
+                        ctx.drawImage(img, sX, sY, sWidth, sHeight, 0, 0, 600, 600);
+                        currentPhotoUrl = canvas.toDataURL('image/jpeg');
+                        initPhotoPuzzle();
+                        alert("✨ 사진이 정사각형 규격에 맞게 최적화되었습니다!");
+                    };
+                    img.src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function toggleOriginalPreview() {
+            const modal = document.getElementById("originalPreviewModal");
+            const previewImg = document.getElementById("originalPreviewImg");
+            
+            isOriginalPreviewOpen = !isOriginalPreviewOpen;
+            if (isOriginalPreviewOpen) {
+                previewImg.src = currentPhotoUrl;
+                modal.style.display = "block";
+            } else {
+                modal.style.display = "none";
+            }
+        }
+
+        function shufflePhotoPuzzle() {
+            for (let i = photoPuzzlePieces.length - 1; i > 0; i--) {
+                let j = Math.floor(Math.random() * (i + 1));
+                let temp = photoPuzzlePieces[i];
+                photoPuzzlePieces[i] = photoPuzzlePieces[j];
+                photoPuzzlePieces[j] = temp;
+            }
+            selectedPhotoPieceIndex = null;
+            renderPhotoPuzzleBoard();
+        }
+
+        function renderPhotoPuzzleBoard() {
+            const board = document.getElementById("photoPuzzleBoard");
+            if (!board) return;
+            board.innerHTML = "";
+
+            photoPuzzlePieces.forEach((pieceIndex, currentIndex) => {
+                const pieceDiv = document.createElement("div");
+                pieceDiv.className = "photo-puzzle-piece";
+                
+                let xPos = (pieceIndex % PHOTO_GRID) * (100 / (PHOTO_GRID - 1));
+                let yPos = Math.floor(pieceIndex / PHOTO_GRID) * (100 / (PHOTO_GRID - 1));
+                
+                pieceDiv.style.backgroundImage = `url('${currentPhotoUrl}')`;
+                pieceDiv.style.backgroundPosition = `${xPos}% ${yPos}%`;
+                pieceDiv.style.backgroundSize = `${PHOTO_GRID * 100}% ${PHOTO_GRID * 100}%`;
+                
+                pieceDiv.dataset.index = currentIndex;
+                pieceDiv.addEventListener("click", handlePhotoPieceClick);
+                
+                board.appendChild(pieceDiv);
+            });
+        }
+
+        function handlePhotoPieceClick() {
+            const clickedIndex = Number(this.dataset.index);
+
+            if (selectedPhotoPieceIndex === null) {
+                selectedPhotoPieceIndex = clickedIndex;
+                this.style.border = "2px solid #FFEB00";
+            } else {
+                let temp = photoPuzzlePieces[selectedPhotoPieceIndex];
+                photoPuzzlePieces[selectedPhotoPieceIndex] = photoPuzzlePieces[clickedIndex];
+                photoPuzzlePieces[clickedIndex] = temp;
+
+                selectedPhotoPieceIndex = null;
+                renderPhotoPuzzleBoard();
+                checkPhotoPuzzleComplete();
+            }
+        }
+
+        /* 🎰 카지노 축하 음악 재생 함수 (Web Audio API 활용) */
+        let casinoAudioCtx = null;
+        function playCasinoCelebrationMusic() {
+            try {
+                window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                casinoAudioCtx = new AudioContext();
+
+                const notes = [523.25, 659.25, 783.99, 1046.50, 783.99, 1046.50];
+                const times = [0, 0.15, 0.3, 0.45, 0.65, 0.8];
+                const durations = [0.12, 0.12, 0.12, 0.18, 0.12, 0.4];
+
+                notes.forEach((freq, idx) => {
+                    let osc = casinoAudioCtx.createOscillator();
+                    let gain = casinoAudioCtx.createGain();
+                    
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, casinoAudioCtx.currentTime + times[idx]);
+
+                    gain.gain.setValueAtTime(0.3, casinoAudioCtx.currentTime + times[idx]);
+                    gain.gain.exponentialRampToValueAtTime(0.001, casinoAudioCtx.currentTime + times[idx] + durations[idx]);
+
+                    osc.connect(gain);
+                    gain.connect(casinoAudioCtx.destination);
+
+                    osc.start(casinoAudioCtx.currentTime + times[idx]);
+                    osc.stop(casinoAudioCtx.currentTime + times[idx] + durations[idx]);
+                });
+            } catch(e) {
+                console.log("Audio play error", e);
+            }
+        }
+
+        /* 🪙 금화 낙하 효과 생성 함수 */
+        function triggerCoinRain() {
+            const board = document.getElementById("photoPuzzleBoard");
+            if(!board) return;
+
+            for (let i = 0; i < 35; i++) {
+                let coin = document.createElement("div");
+                coin.className = "falling-coin";
+                coin.innerText = "🪙";
+                coin.style.left = Math.random() * 90 + "%";
+                coin.style.animationDuration = (Math.random() * 1.2 + 0.8) + "s";
+                coin.style.animationDelay = (Math.random() * 0.5) + "s";
+                board.appendChild(coin);
+
+                setTimeout(() => {
+                    coin.remove();
+                }, 2000);
+            }
+        }
+
+        function checkPhotoPuzzleComplete() {
+            let isComplete = photoPuzzlePieces.every((val, idx) => val === idx);
+            if (isComplete) {
+                amount += 500;
+                updateTotalBalance();
+                
+                playCasinoCelebrationMusic();
+                triggerCoinRain();
+
+                alert("🎉 축하합니다! 사진 퍼즐을 완성하여 +500원이 적립되었습니다! 🏆");
+                shufflePhotoPuzzle();
+            }
+        }
+
+        /* 🚀 4. 아케이드 탄막 슈팅 엔진 */
+        let galagaCanvas = document.getElementById("galagaCanvas"); 
+        let gCtx = galagaCanvas.getContext("2d");
+        let galagaAnimationId = null;
+        
+        let gPlayerX = 160;
+        let gPlayerY = 340;
+        let gBullets = [];
+        let gEnemyBullets = [];
+        let gEnemies = [];
+        let gStars = [];
+        let galagaScore = 2360;
+        let galagaFrame = 0;
+        let bossEnemy = null;
+
+        function initGalagaEnemies() {
+            gEnemies = [];
+            bossEnemy = { x: 160, y: 70, width: 40, height: 30, alive: true, hp: 50, maxHp: 50, angle: 0 };
+        }
+
+        function startGalagaGameEngine() {
+            cancelAnimationFrame(galagaAnimationId);
+            gBullets = [];
+            gEnemyBullets = [];
+            gPlayerX = 160;
+            gPlayerY = 340;
+            galagaScore = 2360;
+            galagaFrame = 0;
+            
+            gStars = [];
+            for(let i=0; i<50; i++) {
+                gStars.push({ x: Math.random()*320, y: Math.random()*380, speed: Math.random()*2 + 1 });
+            }
+
+            initGalagaEnemies();
+            loopGalagaGame();
+        }
+
+        function setGalagaPlayerPos(clientX, clientY) {
+            let rect = galagaCanvas.getBoundingClientRect();
+            let relativeX = clientX - rect.left;
+            let relativeY = clientY - rect.top;
+            if(relativeX > 15 && relativeX < galagaCanvas.width - 15) gPlayerX = relativeX;
+            if(relativeY > 30 && relativeY < galagaCanvas.height - 15) gPlayerY = relativeY;
+        }
+
+        galagaCanvas.addEventListener("touchmove", (e) => { e.preventDefault(); setGalagaPlayerPos(e.touches[0].clientX, e.touches[0].clientY); });
+        galagaCanvas.addEventListener("mousemove", (e) => { setGalagaPlayerPos(e.clientX, e.clientY); });
+
+        function drawBulletPattern(bx, by) {
+            let count = 16;
+            let speed = 2.2;
+            for(let i=0; i<count; i++) {
+                let angle = (Math.PI * 2 / count) * i + (galagaFrame * 0.03);
+                gEnemyBullets.push({
+                    x: bx,
+                    y: by,
+                    dx: Math.cos(angle) * speed,
+                    dy: Math.sin(angle) * speed,
+                    type: 'circle'
+                });
+            }
+        }
+
+        function loopGalagaGame() {
+            gCtx.fillStyle = "#111118";
+            gCtx.fillRect(0, 0, galagaCanvas.width, galagaCanvas.height);
+            galagaFrame++;
+
+            gCtx.fillStyle = "#FFFFFF";
+            gStars.forEach(star => {
+                star.y += star.speed;
+                if(star.y > 380) star.y = 0;
+                gCtx.fillRect(star.x, star.y, 1.5, 1.5);
+            });
+
+            gCtx.fillStyle = "#FF0055"; gCtx.font = "bold 12px monospace"; gCtx.fillText("PI SCORE", 15, 20);
+            gCtx.fillStyle = "#FFFFFF"; gCtx.fillText(galagaScore.toString(), 85, 20);
+
+            if(bossEnemy && bossEnemy.alive) {
+                gCtx.fillStyle = "#444";
+                gCtx.fillRect(80, 28, 160, 6);
+                gCtx.fillStyle = "#FF0055";
+                gCtx.fillRect(80, 28, (bossEnemy.hp / bossEnemy.maxHp) * 160, 6);
+            }
+
+            gCtx.fillStyle = "#00F2FE";
+            gCtx.beginPath();
+            gCtx.moveTo(gPlayerX, gPlayerY - 12);
+            gCtx.lineTo(gPlayerX - 8, gPlayerY + 8);
+            gCtx.lineTo(gPlayerX + 8, gPlayerY + 8);
+            gCtx.fill();
+            gCtx.closePath();
+
+            if(galagaFrame % 6 === 0) {
+                gBullets.push({ x: gPlayerX, y: gPlayerY - 12 });
+            }
+
+            gCtx.fillStyle = "#00F2FE";
+            for(let i = gBullets.length - 1; i >= 0; i--) {
+                let b = gBullets[i];
+                b.y -= 8;
+                gCtx.fillRect(b.x - 1.5, b.y, 3, 8);
+                if(b.y < 25) gBullets.splice(i, 1);
+            }
+
+            if(bossEnemy && bossEnemy.alive) {
+                bossEnemy.angle += 0.03;
+                bossEnemy.x = 160 + Math.sin(bossEnemy.angle) * 90;
+                
+                gCtx.fillStyle = "#7928CA";
+                gCtx.beginPath();
+                gCtx.arc(bossEnemy.x, bossEnemy.y, 22, 0, Math.PI * 2);
+                gCtx.fill();
+                gCtx.closePath();
+                gCtx.fillStyle = "#FF007F";
+                gCtx.beginPath();
+                gCtx.arc(bossEnemy.x, bossEnemy.y, 10, 0, Math.PI * 2);
+                gCtx.fill();
+                gCtx.closePath();
+
+                if(galagaFrame % 45 === 0) {
+                    drawBulletPattern(bossEnemy.x, bossEnemy.y);
+                }
+
+                for(let i = gBullets.length - 1; i >= 0; i--) {
+                    let b = gBullets[i];
+                    let dist = Math.hypot(b.x - bossEnemy.x, b.y - bossEnemy.y);
+                    if(dist < 22) {
+                        gBullets.splice(i, 1);
+                        bossEnemy.hp -= 1;
+                        galagaScore += 50;
+                        amount += 200;
+                        updateTotalBalance();
+
+                        if(bossEnemy.hp <= 0) {
+                            bossEnemy.alive = false;
+                            alert("🎉 보스 격파 성공! 대단합니다!");
+                            startGalagaGameEngine();
+                            return;
+                        }
+                    }
+                }
+            }
+
+            for(let i = gEnemyBullets.length - 1; i >= 0; i--) {
+                let eb = gEnemyBullets[i];
+                eb.x += eb.dx;
+                eb.y += eb.dy;
+
+                gCtx.beginPath();
+                gCtx.arc(eb.x, eb.y, 6, 0, Math.PI * 2);
+                gCtx.fillStyle = "#FF00FF";
+                gCtx.fill();
+                gCtx.lineWidth = 1.5;
+                gCtx.strokeStyle = "#FFFF00";
+                gCtx.stroke();
+                gCtx.closePath();
+
+                let pDist = Math.hypot(eb.x - gPlayerX, eb.y - gPlayerY);
+                if(pDist < 8) {
+                    cancelAnimationFrame(galagaAnimationId);
+                    alert("💥 탄막에 피격되었습니다! 다시 도전하세요.");
+                    startGalagaGameEngine();
+                    return;
+                }
+
+                if(eb.x < 0 || eb.x > 320 || eb.y < 0 || eb.y > 380) {
+                    gEnemyBullets.splice(i, 1);
+                }
+            }
+
+            galagaAnimationId = requestAnimationFrame(loopGalagaGame);
+        }
+
+        /* ⚡ 5. 새로 추가된 '쏟아지는 보석 회피' 미니게임 엔진 */
+        let avoidCanvas = document.getElementById("avoidCanvas");
+        let aCtx = avoidCanvas.getContext("2d");
+        let avoidAnimationId = null;
+        let avoidPlayerX = 160;
+        let avoidPlayerY = 340;
+        let avoidObstacles = [];
+        let avoidGems = [];
+        let avoidScore = 0;
+        let avoidFrame = 0;
+
+        function startAvoidGameEngine() {
+            cancelAnimationFrame(avoidAnimationId);
+            if(!avoidCanvas) return;
+            avoidPlayerX = 160;
+            avoidPlayerY = 340;
+            avoidObstacles = [];
+            avoidGems = [];
+            avoidScore = 0;
+            avoidFrame = 0;
+            loopAvoidGame();
+        }
+
+        function setAvoidPlayerPos(clientX, clientY) {
+            let rect = avoidCanvas.getBoundingClientRect();
+            let relativeX = clientX - rect.left;
+            let relativeY = clientY - rect.top;
+            if(relativeX > 15 && relativeX < avoidCanvas.width - 15) avoidPlayerX = relativeX;
+            if(relativeY > 30 && relativeY < avoidCanvas.height - 15) avoidPlayerY = relativeY;
+        }
+
+        avoidCanvas.addEventListener("touchmove", (e) => { e.preventDefault(); setAvoidPlayerPos(e.touches[0].clientX, e.touches[0].clientY); });
+        avoidCanvas.addEventListener("mousemove", (e) => { setAvoidPlayerPos(e.clientX, e.clientY); });
+
+        function loopAvoidGame() {
+            aCtx.fillStyle = "#0f172a";
+            aCtx.fillRect(0, 0, avoidCanvas.width, avoidCanvas.height);
+            avoidFrame++;
+
+            aCtx.fillStyle = "#E67E22"; aCtx.font = "bold 12px monospace"; aCtx.fillText("AVOID SCORE", 15, 20);
+            aCtx.fillStyle = "#FFFFFF"; aCtx.fillText(avoidScore.toString(), 110, 20);
+
+            aCtx.fillStyle = "#F1C40F";
+            aCtx.beginPath();
+            aCtx.arc(avoidPlayerX, avoidPlayerY, 12, 0, Math.PI * 2);
+            aCtx.fill();
+            aCtx.strokeStyle = "#E67E22";
+            aCtx.lineWidth = 2;
+            aCtx.stroke();
+            aCtx.closePath();
+
+            if(avoidFrame % 25 === 0) {
+                avoidObstacles.push({
+                    x: Math.random() * (avoidCanvas.width - 30) + 15,
+                    y: -20,
+                    size: Math.random() * 12 + 10,
+                    speed: Math.random() * 2 + 2.5
+                });
+            }
+
+            if(avoidFrame % 40 === 0) {
+                avoidGems.push({
+                    x: Math.random() * (avoidCanvas.width - 20) + 10,
+                    y: -20,
+                    speed: 2
+                });
+            }
+
+            aCtx.fillStyle = "#E74C3C";
+            for(let i = avoidObstacles.length - 1; i >= 0; i--) {
+                let obs = avoidObstacles[i];
+                obs.y += obs.speed;
+                
+                aCtx.beginPath();
+                aCtx.arc(obs.x, obs.y, obs.size, 0, Math.PI * 2);
+                aCtx.fill();
+                aCtx.closePath();
+
+                let dist = Math.hypot(obs.x - avoidPlayerX, obs.y - avoidPlayerY);
+                if(dist < obs.size + 10) {
+                    cancelAnimationFrame(avoidAnimationId);
+                    alert("💥 장애물에 부딪혔습니다! 게임 오버.\n획득 점수: " + avoidScore);
+                    startAvoidGameEngine();
+                    return;
+                }
+
+                if(obs.y > avoidCanvas.height + 30) {
+                    avoidObstacles.splice(i, 1);
+                }
+            }
+
+            aCtx.fillStyle = "#2ECC71";
+            for(let i = avoidGems.length - 1; i >= 0; i--) {
+                let gem = avoidGems[i];
+                gem.y += gem.speed;
+
+                aCtx.beginPath();
+                aCtx.arc(gem.x, gem.y, 8, 0, Math.PI * 2);
+                aCtx.fill();
+                aCtx.closePath();
+
+                let dist = Math.hypot(gem.x - avoidPlayerX, gem.y - avoidPlayerY);
+                if(dist < 20) {
+                    avoidGems.splice(i, 1);
+                    avoidScore += 100;
+                    amount += 300;
+                    updateTotalBalance();
+                    continue;
+                }
+
+                if(gem.y > avoidCanvas.height + 30) {
+                    avoidGems.splice(i, 1);
+                }
+            }
+
+            avoidAnimationId = requestAnimationFrame(loopAvoidGame);
+        }
+
+        window.onload = loadSavedData;
+    </script>
+</body>
+</html>
